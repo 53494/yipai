@@ -219,7 +219,7 @@
     transition:all .35s ease;
   }
   #guide .gcard{
-    position:absolute;width:266px;background:#fff;border-radius:8px;padding:16px 18px 14px;
+    position:absolute;width:min(266px,calc(100vw - 24px));background:#fff;border-radius:8px;padding:16px 18px 14px;
     box-shadow:0 12px 40px rgba(0,0,0,.4);pointer-events:none;
   }
   #guide .gstep{
@@ -289,6 +289,29 @@
   .cal-badge.b-ok{color:var(--ok);background:var(--ok-bg)}
   .cal-badge.b-part{color:var(--warn);background:var(--warn-bg)}
   .cal-badge.b-full{color:var(--bad);background:var(--bad-bg)}
+
+  /* ---------- 移动端适配 ---------- */
+  @media (max-width:640px){
+    #cover .hero{flex-direction:column;gap:14px;margin-bottom:22px;text-align:center}
+    #cover .mascot{width:126px;height:126px;border-width:4px}
+    #cover .bubble{max-width:232px;margin:0 auto;font-size:13px}
+    #cover .bubble::before{left:50%;top:-7px;transform:translateX(-50%) rotate(45deg)}
+    #cover .name{font-size:38px;letter-spacing:.14em}
+    #cover .rule{margin:14px 0 12px}
+    #cover .slogan{font-size:12.5px;letter-spacing:.16em;margin-bottom:26px}
+    #cover .enter{padding:12px 32px;font-size:13.5px}
+    #cover .tip{left:0;right:0;text-align:center;padding:0 24px;bottom:20px}
+    .tabs{gap:14px}
+    .top-inner{padding:12px 14px 0}
+    .page{padding:0 12px 48px}
+    .toolbar{flex-wrap:wrap;gap:8px}
+    .toolbar input[type=search]{min-width:0;max-width:none}
+    .toolbar select{min-width:0;flex:1}
+    .table-foot{padding:10px 12px}
+    .cal-bar{padding:12px 12px;gap:8px}
+    .cal-legend{gap:8px}
+    dialog{max-width:calc(100vw - 20px)}
+  }
 </style>
 </head>
 <body>
@@ -1642,23 +1665,32 @@ function renderGuideStep(){
     dim.style.display = "block";
   }
 
-  // 摆放说明卡片
-  const CW = 266, GAP = 26;
+  // 摆放说明卡片（移动端：窄屏时左右放置降级为下方放置）
+  const mobile = vw < 640;
+  const CW = Math.min(266, vw - 24), GAP = mobile ? 16 : 26;
+  let place = st.place;
+  if(mobile && (place === "right" || place === "left")) place = "below";
   let cl, ct;
-  if(st.place === "center"){
-    cl = vw/2 - CW/2; ct = vh*0.38;
+  if(place === "center"){
+    cl = vw/2 - CW/2; ct = vh*0.34;
   }else{
-    if(st.place === "right")  cl = spotR.right + GAP;
-    if(st.place === "left")   cl = spotR.left - CW - GAP;
-    if(st.place === "below")  cl = Math.min(Math.max(spotR.left, 12), vw - CW - 12);
-    if(st.place === "right" || st.place === "left"){
+    if(place === "right")  cl = spotR.right + GAP;
+    if(place === "left")   cl = spotR.left - CW - GAP;
+    if(place === "below")  cl = Math.min(Math.max(spotR.left, 12), vw - CW - 12);
+    if(place === "right" || place === "left"){
       ct = Math.min(Math.max(spotR.top, 12), vh - 200);
     }else{
-      ct = spotR.bottom + GAP;
+      ct = Math.min(spotR.bottom + GAP, vh - 150);
     }
   }
   card.style.left = Math.max(12, Math.min(cl, vw - CW - 12)) + "px";
   card.style.top  = Math.max(12, ct) + "px";
+  if(st.place === "center" && vh < 760) card.style.top = Math.max(12, ct - vh*0.06) + "px";
+  /* 底部越界保护：卡片若超出可视区底部，整体上移 */
+  const cardH = card.offsetHeight;
+  if(card.getBoundingClientRect().bottom > vh - 10){
+    card.style.top = Math.max(12, vh - cardH - 14) + "px";
+  }
 
   // 箭头：从卡片边缘指向高亮区
   if(spotR){
